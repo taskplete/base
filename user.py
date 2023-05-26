@@ -12,7 +12,7 @@ db.init_app(app)
 
 @app.route('/')
 def home():
-    return render_template('index.html')
+    return render_template('dashboard/index.html')
 
 
 @app.route('/user')
@@ -30,7 +30,7 @@ def user():
             'is_active': r[5],
         }
         data.append(row)
-    return render_template('user.html', data=data)
+    return render_template('user/user.html', data=data)
 
 
 @app.route('/user/add', methods=['GET', 'POST'])
@@ -54,7 +54,7 @@ def user_add():
         print("success", result)
         return redirect(url_for('user'))
 
-    return render_template('user_add.html', data=[])
+    return render_template('user/user_add.html', data=[])
 
 
 @app.route('/user/edit/<user_id>', methods=['GET', 'POST'])
@@ -89,7 +89,7 @@ def user_edit(user_id):
         db.session.commit()
         print("success", result)
         return redirect(url_for('user'))
-    return render_template('user_edit.html', data=data)
+    return render_template('user/user_edit.html', data=data)
 
 
 @app.route('/user/delete/<user_id>', methods=['GET', 'POST'])
@@ -111,7 +111,7 @@ def user_delete(user_id):
         db.session.commit()
         print("success", result)
         return redirect(url_for('user'))
-    return render_template('user_delete.html', data=data)
+    return render_template('user/user_delete.html', data=data)
 
 
 if __name__ == '__main__':
