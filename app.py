@@ -1,13 +1,37 @@
 from flask import Flask, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import text
+from sqlalchemy.ext.declarative import declarative_base
 
 app = Flask(__name__)
-db = SQLAlchemy()
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:aothecode@127.0.0.1/admin'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
-# initialize the app with Flask-SQLAlchemy
-db.init_app(app)
+
+db = SQLAlchemy(app)
+Base = declarative_base()
+
+
+class User(db.Model):
+    __tablename__ = 'user'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    username = db.Column(db.String(255), nullable=False, unique=True)
+    full_name = db.Column(db.String(255), nullable=False)
+    email = db.Column(db.String(255), nullable=False, unique=True)
+    user_type = db.Column(db.String(50), nullable=False)
+    is_active = db.Column(db.Boolean, nullable=False)
+
+    def save(self):
+        db.session.add(self)
+        db.session.commit()
+        return self
+
+    def delete(self):
+        db.session.delete(self)
+        db.session.commit()
+        return self
+
+    def update(self):
+        db.session.commit()
+        return self
 
 
 @app.route('/')
@@ -17,19 +41,8 @@ def home():
 
 @app.route('/user')
 def user():
-    result = db.session.execute(text('SELECT id, username, full_name, email, user_type, is_active FROM public."user";'))
-    data = []
-    for r in result:
-        row = {
-            'id': r[0],
-            'username': r[1],
-            'full_name': r[2],
-            'email': r[3],
-            'user_type': r[4],
-            'is_active': r[5],
-        }
-        data.append(row)
-    return render_template('user/user.html', data=data)
+    result = User.query.all()
+    return render_template('user/user.html', data=result)
 
 
 @app.route('/user/add', methods=['GET', 'POST'])
@@ -46,11 +59,8 @@ def user_add():
         fullname = request.form['fullname']
         email = request.form['email']
         user_type = request.form['user_type']
-
-        result = db.session.execute(text(
-            f"""INSERT INTO "user" (username, full_name, email, user_type, is_active) VALUES ('{username}','{fullname}', '{email}', '{user_type}', {user_status} )"""))
-        db.session.commit()
-        print("success", result)
+        data = User(username=username, full_name=fullname, email=email, user_type=user_type, is_active=user_status)
+        data.save()
         return redirect(url_for('user'))
 
     return render_template('user/user_add.html', data=[])
@@ -58,18 +68,7 @@ def user_add():
 
 @app.route('/user/edit/<user_id>', methods=['GET', 'POST'])
 def user_edit(user_id):
-    result = db.session.execute(
-        text(f'SELECT id, username, full_name, email, user_type, is_active FROM public."user" WHERE id = {user_id}'))
-    data = None
-    for r in result:
-        data = {
-            'id': r[0],
-            'username': r[1],
-            'full_name': r[2],
-            'email': r[3],
-            'user_type': r[4],
-            'is_active': r[5],
-        }
+    data = User.query.get(user_id)
     if request.method == 'POST':
         print("username: ", request.form['username'])
         print("fullname: ", request.form['fullname'])
@@ -82,33 +81,20 @@ def user_edit(user_id):
         fullname = request.form['fullname']
         email = request.form['email']
         user_type = request.form['user_type']
-
-        result = db.session.execute(text(
-            f"""UPDATE  "user" SET username ='{username}', full_name='{fullname}', email='{email}', user_type= '{user_type}', is_active={user_status} WHERE id={user_id}"""))
-        db.session.commit()
-        print("success", result)
+        data.username = username
+        data.full_name = fullname
+        data.email = email
+        data.user_type = user_type
+        data.save()
         return redirect(url_for('user'))
     return render_template('user/user_edit.html', data=data)
 
 
 @app.route('/user/delete/<user_id>', methods=['GET', 'POST'])
 def user_delete(user_id):
-    result = db.session.execute(
-        text(f'SELECT id, username, full_name, email, user_type, is_active FROM public."user" WHERE id = {user_id}'))
-    data = None
-    for r in result:
-        data = {
-            'id': r[0],
-            'username': r[1],
-            'full_name': r[2],
-            'email': r[3],
-            'user_type': r[4],
-            'is_active': r[5],
-        }
+    data = User.query.get(user_id)
     if request.method == 'POST':
-        result = db.session.execute(text(f"""DELETE FROM  "user" WHERE id={user_id}"""))
-        db.session.commit()
-        print("success", result)
+        data.delete()
         return redirect(url_for('user'))
     return render_template('user/user_delete.html', data=data)
 
